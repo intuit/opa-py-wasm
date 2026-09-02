@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    groups:
+      # Lint/test tooling churns often and is not consumer-facing; one PR for
+      # the lot keeps the review queue readable.
+      dev-tooling:
+        patterns: ["black", "isort", "mypy", "ruff", "types-*", "pytest*", "tox*"]
+    # wasmtime is deliberately pinned to one major line (see the comment on the
+    # dependency in pyproject.toml): the SDK couples to wasmtime.py internals,
+    # including trap-message text. Let Dependabot propose 46.x patch/minor
+    # bumps automatically, but a new major must be adopted deliberately behind
+    # a full test run — so it is not raised as routine noise here. Track majors
+    # via the release checklist in RELEASING.md instead.
+    ignore:
+      - dependency-name: wasmtime
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]

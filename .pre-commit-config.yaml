@@ -1,0 +1,56 @@
+# Mirrors the [testenv:lint] commands in tox.ini and the lint job in
+# .github/workflows/ci.yml, so a local commit fails for the same reasons CI
+# does. Install with:
+#
+#     uv run pre-commit install
+#
+# Hook versions are pinned to the versions resolved in uv.lock; when you bump a
+# linter there, bump it here too (or run `pre-commit autoupdate`).
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        # The compiled .wasm fixtures are the largest tracked files; keep the
+        # ceiling above them but low enough to catch an accidental blob.
+        args: ["--maxkb=1024"]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      # Guards against committing a private key alongside a policy fixture.
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+      - id: black
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.20.2
+    hooks:
+      - id: mypy
+        # mypy.ini sets `files = opapywasm, tests`; pass no filenames so the
+        # hook type-checks the configured set as a whole rather than only the
+        # staged files, which is what tox and CI do.
+        pass_filenames: false
+        args: []
+        additional_dependencies:
+          - "types-PyYAML>=6.0"
+          - "pytest>=8.4.0"
+          - "wasmtime>=46.0.0,<47.0.0"

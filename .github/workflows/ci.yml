@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installed via the official standalone script rather than a setup action,
+      # so the workflow depends only on first-party actions.
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache uv downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-lint-${{ hashFiles('uv.lock') }}
+          restore-keys: uv-${{ runner.os }}-lint-
+
+      - name: Install dependencies
+        run: uv sync --all-extras --all-groups
+
+      - name: ruff
+        run: uv run ruff check .
+
+      - name: isort
+        run: uv run isort --check-only --df .
+
+      - name: black
+        run: uv run black --check --diff .
+
+      - name: mypy
+        run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache uv downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
+          restore-keys: uv-${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras --all-groups --python ${{ matrix.python-version }}
+
+      # The coverage floor (fail_under = 90) is enforced from
+      # [tool.coverage.report] in pyproject.toml.
+      - name: pytest
+        run: uv run --python ${{ matrix.python-version }} pytest --cov=opapywasm --cov-report=term

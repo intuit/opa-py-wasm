@@ -1,0 +1,134 @@
+[project]
+name = "opa-py-wasm"
+version = "1.2.1"
+description = "In-process, thread-safe Python SDK for evaluating OPA policies compiled to WebAssembly, built on wasmtime.py"
+authors = [
+    { name = "Sanjana Goel" },
+    { name = "Ravi Chauhan" },
+]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10,<4.0"
+keywords = ["opa", "open-policy-agent", "wasm", "webassembly", "policy", "authorization"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+# https://docs.astral.sh/uv/concepts/projects/dependencies/
+dependencies = [
+    # Pinned to the 46.x line: this SDK couples tightly to wasmtime.py internals
+    # (epoch-interruption wiring, Store/Memory API shapes, and trap-message text
+    # matched in evaluator._is_epoch_interrupt). Those were verified against 46.x,
+    # and wasmtime.py bumps majors often with breaking API/trap changes, so a new
+    # major must be adopted deliberately behind a test run rather than silently.
+    "wasmtime >=46.0.0,<47.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/intuit/opa-py-wasm"
+Repository = "https://github.com/intuit/opa-py-wasm"
+Issues = "https://github.com/intuit/opa-py-wasm/issues"
+Changelog = "https://github.com/intuit/opa-py-wasm/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+# YAML default builtins (yaml.is_valid / yaml.marshal / yaml.unmarshal) are an
+# optional capability. Install with: opa-py-wasm[yaml]
+yaml = [
+    "PyYAML >=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "black >=25.9.0",
+    "isort >=7.0.0,<8.0.0",
+    "mypy >=1.18.1,<2.0.0",
+    "ruff >=0.6.0",
+    "types-PyYAML >=6.0",
+]
+test = [
+    "pytest >=8.4.0",
+    "pytest-cov >=7.0.0,<8.0.0",
+    "pytest-xdist >=3.8.0,<4.0.0",
+    "tox >=4.26.0,<5.0.0",
+    "tox-uv >=1.28.0",
+]
+
+[tool.uv.build-backend]
+module-name = "opapywasm"
+module-root = ""
+
+[tool.black]
+line-length = 120
+target-version = ['py310','py311','py312','py313','py314']
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/F: pyflakes+pycodestyle, I: isort, B: bugbear, UP: pyupgrade,
+# SIM: simplify, RUF: ruff-specific. Keep the set defensive, not noisy.
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = [
+    "E501",  # line length handled by black
+    "SIM105",  # contextlib.suppress not always clearer than try/except
+    "RUF022",  # __all__ is grouped logically, not alphabetically, on purpose
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011", "B017"]
+# JSONValue/JSONInput are runtime alias values; a self-referential `X | Y`
+# alias is awkward to spell portably, so Union is intentional here.
+"opapywasm/types.py" = ["UP007"]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = [
+    "tests",
+]
+looponfailroots = ["opapywasm", "tests"]
+addopts = "-p no:warnings -o log_cli=true --log-cli-level=INFO"
+markers = [
+    "integration: tests that instantiate real compiled OPA wasm fixtures",
+    "concurrency: multi-threaded stress tests",
+    "requires_wasm: skipped when compiled wasm fixtures are absent",
+    "requires_yaml: skipped when PyYAML is not installed",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["opapywasm"]
+
+[tool.coverage.report]
+# Fail the build if library coverage drops below this. The suite currently
+# sits at ~99%; 90% leaves headroom without letting real gaps slip through.
+fail_under = 90
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "\\.\\.\\.",
+]
+
+[build-system]
+# Widened across the 0.x line: a narrow upper bound makes every `uv build` with
+# a newer uv warn that the installed backend is outside the declared range, and
+# would make building from the sdist fail for anyone on a current uv.
+requires = ["uv_build>=0.9.3,<1.0.0"]
+build-backend = "uv_build"

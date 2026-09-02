@@ -1,0 +1,52 @@
+# Mac
+.DS_Store
+
+# Code coverage
+.coverage
+.coverage_db_*
+coverage*.xml
+junit_results.xml
+htmlcov*/
+
+# Python
+*.pyc
+__pycache__/
+/venv/
+/.venv/
+
+# Poetry
+# lock file should not be committed because dependency lock is managed by uv
+poetry.lock
+
+# Tests
+.tox/
+
+# IDEs
+# Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+# Intellij
+.idea/
+# ms vscode
+.vscode/
+# coding agents (local settings may contain machine paths)
+.claude/
+
+# Builds
+dist/
+
+# Local dev tools (OPA CLI, etc.)
+/.tools/
+
+# Local-only perf/capacity testing against real (non-public) policies —
+# never published; see docs/capacity_planning.md for the shareable findings.
+/tests/perf/
+/scripts/build_perf_fixtures.py
+
+# Secrets / credentials — never commit
+.env
+.env.*
+*.pem
+*.key

@@ -1,0 +1,262 @@
+name: Release
+
+# Publishing to PyPI is irreversible: a version can be yanked but never
+# replaced. So the build job re-runs the full lint + test matrix and refuses to
+# proceed unless the pushed tag matches the version declared in pyproject.toml.
+#
+# Auth is PyPI Trusted Publishing (OIDC) — there is no API token stored in this
+# repository. See RELEASING.md for the one-time PyPI/GitHub setup.
+
+on:
+  push:
+    tags: ["v*"]
+  # Manual dry run against TestPyPI, from a branch or tag.
+  workflow_dispatch:
+    inputs:
+      testpypi:
+        description: "Publish to TestPyPI instead of PyPI"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate 1: the tag must agree with pyproject.toml, and the version must not be
+  # a leftover .dev marker.
+  # ---------------------------------------------------------------------------
+  version-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches pyproject.toml version
+        id: check
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # tomllib is stdlib on the runner's Python 3.11+.
+          project_version="$(python3 -c '
+          import tomllib, pathlib
+          print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])
+          ')"
+          echo "pyproject.toml version: ${project_version}"
+
+          if [ "${REF_TYPE}" != "tag" ]; then
+            # workflow_dispatch from a branch: no tag to compare against.
+            echo "Not a tag ref (${REF_NAME}); skipping tag comparison."
+            echo "version=${project_version}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          tag_version="${REF_NAME#v}"
+          echo "tag version:            ${tag_version}"
+
+          if [ "${tag_version}" != "${project_version}" ]; then
+            echo "::error::Tag '${REF_NAME}' implies version '${tag_version}' but" \
+                 "pyproject.toml declares '${project_version}'. Bump the version" \
+                 "and re-tag; do not move the tag onto a mismatched commit."
+            exit 1
+          fi
+
+          # A .dev version is a development marker, never a release. Release
+          # candidates (1.2.1rc1) are allowed, since the tag carries the suffix
+          # too and the mismatch check above already proved they agree.
+          case "${project_version}" in
+            *.dev*|*+*)
+              echo "::error::Refusing to release version '${project_version}':" \
+                   ".dev / local-version segments are not publishable releases."
+              exit 1
+              ;;
+          esac
+
+          echo "Version gate passed: ${project_version}"
+          echo "version=${project_version}" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Gate 2: never publish untested code. Reuses the same checks as ci.yml.
+  # ---------------------------------------------------------------------------
+  lint:
+    needs: version-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installed via the official standalone script rather than a setup action,
+      # so the workflow depends only on first-party actions.
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --all-groups
+
+      - name: ruff
+        run: uv run ruff check .
+
+      - name: isort
+        run: uv run isort --check-only --df .
+
+      - name: black
+        run: uv run black --check --diff .
+
+      - name: mypy
+        run: uv run mypy
+
+  test:
+    needs: version-gate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras --all-groups --python ${{ matrix.python-version }}
+
+      # The coverage floor (fail_under = 90) is enforced from
+      # [tool.coverage.report] in pyproject.toml.
+      - name: pytest
+        run: uv run --python ${{ matrix.python-version }} pytest --cov=opapywasm --cov-report=term
+
+  # ---------------------------------------------------------------------------
+  # Build once, publish that exact artifact. Downstream jobs never rebuild, so
+  # what lands on PyPI is byte-identical to what was checked here.
+  # ---------------------------------------------------------------------------
+  build:
+    needs: [version-gate, lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check distribution metadata
+        run: uv run --with twine twine check --strict dist/*
+
+      - name: Verify wheel installs and imports cleanly
+        env:
+          EXPECTED: ${{ needs.version-gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          # A fresh venv with no source tree on the path: catches the classic
+          # failure where the suite passes in-tree but the wheel is incomplete.
+          python3 -m venv /tmp/smoke
+          /tmp/smoke/bin/python -m pip install --quiet --upgrade pip
+          /tmp/smoke/bin/python -m pip install --quiet dist/*.whl
+          cd /tmp
+          actual="$(/tmp/smoke/bin/python -c 'import opapywasm; print(opapywasm.__version__)')"
+          echo "installed __version__: ${actual}"
+          if [ "${actual}" != "${EXPECTED}" ]; then
+            echo "::error::Installed __version__ '${actual}' != expected '${EXPECTED}'."
+            exit 1
+          fi
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Publish. id-token: write is what Trusted Publishing needs; nothing else is
+  # granted, and no credentials are configured on the publish action.
+  # ---------------------------------------------------------------------------
+  publish-testpypi:
+    if: github.event_name == 'workflow_dispatch' && inputs.testpypi
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # No user/password/token: the action exchanges the OIDC token for a
+      # short-lived PyPI credential, and PyPI records build provenance.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: [version-gate, publish-pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Extract this version's changelog section
+        env:
+          VERSION: ${{ needs.version-gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Print the body between this version's heading and the next one.
+          awk -v ver="[${VERSION}]" '
+            index($0, "## " ver) == 1 { inside = 1; next }
+            inside && /^## \[/        { exit }
+            inside                    { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "No CHANGELOG section found for ${VERSION}; falling back to a pointer."
+            printf 'See [CHANGELOG.md](https://github.com/intuit/opa-py-wasm/blob/main/CHANGELOG.md).\n' \
+              > release-notes.md
+          fi
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --title "$TAG" --notes-file release-notes.md --verify-tag
