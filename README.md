@@ -71,9 +71,14 @@ For the YAML default builtins, install the optional extra:
 uv add "opa-py-wasm[yaml]"
 ```
 
-See [`docs/`](./docs) for architecture, thread-safety, the OPA Wasm ABI, the
-`opa-java-wasm` parity table, and [capacity-planning guidance](./docs/capacity_planning.md)
-for sizing pool size and concurrency.
+Start with the [**user guide**](./docs/guide.md) — an end-to-end walkthrough
+covering compiling a policy, result semantics, concurrency, data updates, memory
+behaviour, host builtins, and a production adoption checklist.
+
+See [`docs/`](./docs) for the focused references: architecture, thread-safety,
+the OPA Wasm ABI, the `opa-java-wasm` parity table, and
+[capacity-planning guidance](./docs/capacity_planning.md) for sizing pool size
+and concurrency.
 
 ### Test fixtures (dev only)
 
