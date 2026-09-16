@@ -4,7 +4,7 @@
 [![CI](https://github.com/intuit/opa-py-wasm/actions/workflows/ci.yml/badge.svg)](https://github.com/intuit/opa-py-wasm/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)
 [![PyPI](https://img.shields.io/pypi/v/opa-py-wasm.svg)](https://pypi.org/project/opa-py-wasm/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/intuit/opa-py-wasm/blob/main/LICENSE)
 
 `opa-py-wasm` is an in-process, thread-safe Python SDK for evaluating
 [Open Policy Agent](https://www.openpolicyagent.org/) policies compiled to
@@ -62,7 +62,7 @@ policy.register_builtin("my.custom", lambda x: {"ok": True})
 ```
 
 `OpaWasmPolicy` is a bounded, thread-safe pool — construct it once and call
-`evaluate` from many threads. Runnable scripts are in [`examples/`](./examples):
+`evaluate` from many threads. Runnable scripts are in [`examples/`](https://github.com/intuit/opa-py-wasm/tree/main/examples):
 `basic_authz.py`, `pooled_eval.py`, `custom_builtin.py`, `yaml_builtin.py`.
 
 For the YAML default builtins, install the optional extra:
@@ -71,9 +71,14 @@ For the YAML default builtins, install the optional extra:
 uv add "opa-py-wasm[yaml]"
 ```
 
-See [`docs/`](./docs) for architecture, thread-safety, the OPA Wasm ABI, the
-`opa-java-wasm` parity table, and [capacity-planning guidance](./docs/capacity_planning.md)
-for sizing pool size and concurrency.
+Start with the [**user guide**](https://github.com/intuit/opa-py-wasm/blob/main/docs/guide.md) — an end-to-end walkthrough
+covering compiling a policy, result semantics, concurrency, data updates, memory
+behaviour, host builtins, and a production adoption checklist.
+
+See [`docs/`](https://github.com/intuit/opa-py-wasm/tree/main/docs) for the focused references: architecture, thread-safety,
+the OPA Wasm ABI, the `opa-java-wasm` parity table, and
+[capacity-planning guidance](https://github.com/intuit/opa-py-wasm/blob/main/docs/capacity_planning.md) for sizing pool size
+and concurrency.
 
 ### Test fixtures (dev only)
 
@@ -149,22 +154,22 @@ uv run tox
 ```
 
 Coverage is enforced on every CI run by `fail_under = 90` in
-[`tool.coverage.report`](./pyproject.toml); the suite currently sits at 99%. The
+[`tool.coverage.report`](https://github.com/intuit/opa-py-wasm/blob/main/pyproject.toml); the suite currently sits at 99%. The
 coverage badge at the top of this file is static — if you change coverage
 materially, update the percentage in that badge along with your change.
 
 ## Releasing
 
 Releases are cut by maintainers by pushing a `vX.Y.Z` tag, which triggers an
-automated build and publish to PyPI. See [`RELEASING.md`](./RELEASING.md) for
+automated build and publish to PyPI. See [`RELEASING.md`](https://github.com/intuit/opa-py-wasm/blob/main/RELEASING.md) for
 the process and the versioning policy. Published versions are listed on
 [PyPI](https://pypi.org/project/opa-py-wasm/), and each release's changes are in
-[`CHANGELOG.md`](./CHANGELOG.md).
+[`CHANGELOG.md`](https://github.com/intuit/opa-py-wasm/blob/main/CHANGELOG.md).
 
 ## Contributing
 
-Contributions are welcome — see the [Contribution Guidelines](./CONTRIBUTING.md)
-and our [Code of Conduct](./CODE_OF_CONDUCT.md).
+Contributions are welcome — see the [Contribution Guidelines](https://github.com/intuit/opa-py-wasm/blob/main/CONTRIBUTING.md)
+and our [Code of Conduct](https://github.com/intuit/opa-py-wasm/blob/main/CODE_OF_CONDUCT.md).
 
 ## Support
 
@@ -174,4 +179,4 @@ bugs and feature requests, or start a
 
 ## License
 
-Released under the [MIT License](./LICENSE).
+Released under the [MIT License](https://github.com/intuit/opa-py-wasm/blob/main/LICENSE).

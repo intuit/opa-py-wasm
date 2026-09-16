@@ -11,7 +11,7 @@ is automated by [`.github/workflows/release.yml`](.github/workflows/release.yml)
 
 ## The release loop
 
-1. **Land your changes** on `master` with CI green. Every user-visible change
+1. **Land your changes** on `main` with CI green. Every user-visible change
    should have added a bullet under `## [Unreleased]` in
    [`CHANGELOG.md`](CHANGELOG.md) as part of its own PR.
 
@@ -22,15 +22,18 @@ is automated by [`.github/workflows/release.yml`](.github/workflows/release.yml)
      `## [1.2.1] - YYYY-MM-DD`, adds a fresh empty `## [Unreleased]` above it,
      and adds the version's compare link to the footer.
 
-3. **Merge it** and wait for CI to pass on `master`.
+3. **Merge it** and wait for CI to pass on `main`.
 
 4. **Tag and push.** The tag must be `v` + the exact version:
 
    ```shell
-   git switch master && git pull
+   git switch main && git pull
    git tag v1.2.1
-   git push origin v1.2.1
+   git push <remote> v1.2.1
    ```
+
+   `<remote>` is whichever remote in your clone points at
+   `github.com/intuit/opa-py-wasm` (`git remote -v` to check).
 
 5. **Approve the publish.** The `pypi` environment requires a reviewer, so the
    run pauses before upload. Approving it publishes to PyPI and creates the
@@ -110,8 +113,9 @@ permanently burns the version number, since PyPI will not accept a re-upload.
 
 ## One-time setup
 
-Already done for this repository; recorded here for reference or if the project
-moves.
+The GitHub side (environments `pypi` with required reviewers and a `v*` tag
+deployment rule, and `testpypi`) is configured. The PyPI side must be done once
+by a maintainer with a PyPI account before the first release can publish.
 
 **On PyPI** — *Manage project* → *Publishing* → add a Trusted Publisher:
 
