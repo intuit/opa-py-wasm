@@ -1,10 +1,10 @@
 # opa-py-wasm
 
-![Supported Python versions](https://shields.io/badge/python-3.10_|_3.11_|_3.12_|_3.13_|_3.14-green?logo=python)
+[![Python versions](https://img.shields.io/pypi/pyversions/opa-py-wasm?logo=python&logoColor=white&cacheSeconds=3600)](https://pypi.org/project/opa-py-wasm/)
 [![CI](https://github.com/intuit/opa-py-wasm/actions/workflows/ci.yml/badge.svg)](https://github.com/intuit/opa-py-wasm/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)
-[![PyPI](https://img.shields.io/pypi/v/opa-py-wasm.svg)](https://pypi.org/project/opa-py-wasm/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/intuit/opa-py-wasm/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/opa-py-wasm?cacheSeconds=3600)](https://pypi.org/project/opa-py-wasm/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://github.com/intuit/opa-py-wasm/blob/main/LICENSE)
 
 `opa-py-wasm` is an in-process, thread-safe Python SDK for evaluating
 [Open Policy Agent](https://www.openpolicyagent.org/) policies compiled to
