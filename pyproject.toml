@@ -33,7 +33,7 @@ dependencies = [
     # matched in evaluator._is_epoch_interrupt). Those were verified against 46.x,
     # and wasmtime.py bumps majors often with breaking API/trap changes, so a new
     # major must be adopted deliberately behind a test run rather than silently.
-    "wasmtime >=46.0.0,<47.0.0",
+    "wasmtime >=46.0.0,<48.0.0",
 ]
 
 [project.urls]
