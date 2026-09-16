@@ -1,6 +1,6 @@
 [project]
 name = "opa-py-wasm"
-version = "1.2.1"
+version = "1.2.2.dev0"
 description = "In-process, thread-safe Python SDK for evaluating OPA policies compiled to WebAssembly, built on wasmtime.py"
 authors = [
     { name = "Sanjana Goel" },
