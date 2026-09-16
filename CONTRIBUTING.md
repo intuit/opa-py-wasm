@@ -116,7 +116,7 @@ Contributions are made through a fork and pull request.
    git push origin <your-branch>
    ```
 
-5. Open a pull request against `master` and fill out the template. Link the
+5. Open a pull request against `main` and fill out the template. Link the
    issue it addresses (e.g. `Closes #123`). CI runs automatically.
 
 6. A maintainer will review your change and may suggest adjustments. Once it is
