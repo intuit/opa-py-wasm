@@ -106,6 +106,20 @@ def large_data_segment_wasm() -> bytes:
     return bytes(wasmtime.wat2wasm(LARGE_DATA_SEGMENT_WAT))
 
 
+# Module whose env.memory import requires more than the runtime's default
+# initial pages. The runtime should honor the module minimum immediately.
+MIN_MEMORY_IMPORT_WAT = r"""
+(module
+  (import "env" "memory" (memory 5))
+  (func (export "opa_malloc") (param i32) (result i32) (i32.const 0))
+)
+"""
+
+
+def min_memory_import_wasm() -> bytes:
+    return bytes(wasmtime.wat2wasm(MIN_MEMORY_IMPORT_WAT))
+
+
 # A start function that unconditionally traps via `unreachable` — an
 # instantiation-time trap unrelated to memory sizing (TrapCode.UNREACHABLE,
 # not MEMORY_OUT_OF_BOUNDS). Must fail immediately, not drive the

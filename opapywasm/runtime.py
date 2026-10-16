@@ -259,6 +259,20 @@ class WasmtimeRuntimeFactory:
         )
 
 
+def min_memory_pages(module: wasmtime.Module) -> int:
+    """
+    returns the required minimum number of memory pages required to run the module, or _DEFAULT_MEMORY_PAGES if not set.
+    """
+    return next(
+        (
+            imp.type.limits.min
+            for imp in module.imports
+            if imp.module == "env" and imp.name == "memory" and isinstance(imp.type, wasmtime.MemoryType)
+        ),
+        _DEFAULT_MEMORY_PAGES,
+    )
+
+
 class WasmtimeRuntime:
     """One instantiated policy module: Store + host Memory + Instance + exports.
 
@@ -286,7 +300,7 @@ class WasmtimeRuntime:
         # Store — and with it the Memory it owns — before re-raising so a runtime
         # whose constructor never completed does not leak its native resources to
         # GC. This matters most on the repeated-invalid-module path.
-        initial_pages = _DEFAULT_MEMORY_PAGES
+        initial_pages = min_memory_pages(module)
         last_exc: Exception | None = None
         try:
             # Covers the whole retry loop, including failed attempts' own

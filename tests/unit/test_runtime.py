@@ -16,6 +16,7 @@ from opapywasm.runtime import WasmtimeRuntime, WasmtimeRuntimeFactory
 from .wat_helpers import (
     env_memory_wrong_kind_wasm,
     large_data_segment_wasm,
+    min_memory_import_wasm,
     non_opa_wasm,
     oob_abort_wasm,
     opa_like_wasm,
@@ -83,6 +84,13 @@ class TestInstantiation:
         f = WasmtimeRuntimeFactory(large_data_segment_wasm())
         rt = f.create_runtime()
         assert rt.memory.size(rt.store) > 2
+
+    def test_module_minimum_memory_import_is_used_for_initial_pages(self) -> None:
+        # Regression: if a module declares a higher env.memory minimum than the
+        # runtime default, instantiate with the module minimum immediately.
+        f = WasmtimeRuntimeFactory(min_memory_import_wasm())
+        rt = f.create_runtime()
+        assert rt.memory.size(rt.store) == 5
 
     def test_module_needing_larger_initial_memory_logs_a_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         f = WasmtimeRuntimeFactory(large_data_segment_wasm())
